@@ -5,7 +5,7 @@ const DongGodNetworkTechnologyServiceAPI = (function() {
         if (typeof DongGodNetworkTechnologyServicesInformationRelayStation === 'undefined') {
             await new Promise((resolve, reject) => {
                 const script = document.createElement('script');
-                script.src = 'https://dongshengamestudio.github.io/DongGodNetworkTechnologyServices-InformationRelayStation/DongGodNetworkTechnologyServices-InformationRelayStation.js';
+                script.src = 'DongGodNetworkTechnologyServices-InformationRelayStation.js';
                 script.onload = resolve;
                 script.onerror = reject;
                 document.head.appendChild(script);
@@ -13,19 +13,10 @@ const DongGodNetworkTechnologyServiceAPI = (function() {
         }
     }
     
-    // 计算SHA-256哈希
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    
-    // 验证用户
+    // 验证用户（使用明文密码）
     async function verifyUser(username, password) {
         try {
             await loadRelayStation();
-            const passwordHash = await sha256(password);
             
             // 获取用户编号
             let userNumber = null;
@@ -43,8 +34,8 @@ const DongGodNetworkTechnologyServiceAPI = (function() {
                 return null;
             }
             
-            // 验证密码
-            const isValid = await DongGodNetworkTechnologyServicesInformationRelayStation.verifyPassword(userNumber, passwordHash);
+            // 验证密码（明文比较）
+            const isValid = await DongGodNetworkTechnologyServicesInformationRelayStation.verifyPassword(userNumber, password);
             
             if (isValid) {
                 // 获取用户信息
