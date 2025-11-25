@@ -1,22 +1,44 @@
-// 东神网络科技服务API
+// 东神网络科技服务API - 简化版
 const DongGodNetworkTechnologyServiceAPI = (function() {
-    // 加载信息中转站脚本
-    async function loadRelayStation() {
-        if (typeof DongGodNetworkTechnologyServicesInformationRelayStation === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'DongGodNetworkTechnologyServices-InformationRelayStation.js';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
+    let userData = null;
+    
+    // 加载用户数据
+    async function loadUserData() {
+        if (userData) return userData;
+        
+        try {
+            // 加载所有JSON数据
+            const urls = [
+                'UserMobilePhoneNumberCorrespondingNumberTable.json',
+                'UserEmailAddressNumberToNumberTable.json',
+                'Number-To-PasswordTable.json',
+                'NicknameOfTheUserCorrespondingToTheNumber.json',
+                'ChineseCurrencyCorrespondingToTheNumber.json'
+            ];
+            
+            const responses = await Promise.all(urls.map(url => fetch(url)));
+            const data = await Promise.all(responses.map(response => response.json()));
+            
+            // 存储数据
+            userData = {
+                phoneToNumber: data[0],
+                emailToNumber: data[1],
+                numberToPassword: data[2],
+                numberToNickname: data[3],
+                numberToCurrency: data[4]
+            };
+            
+            return userData;
+        } catch (error) {
+            console.error('加载用户数据失败:', error);
+            throw new Error('无法加载用户数据');
         }
     }
     
-    // 验证用户（使用明文密码）
+    // 验证用户
     async function verifyUser(username, password) {
         try {
-            await loadRelayStation();
+            const data = await loadUserData();
             
             // 获取用户编号
             let userNumber = null;
@@ -24,10 +46,10 @@ const DongGodNetworkTechnologyServiceAPI = (function() {
             // 检查是手机号还是邮箱
             if (username.includes('@')) {
                 // 邮箱登录
-                userNumber = await DongGodNetworkTechnologyServicesInformationRelayStation.getUserNumberByEmail(username);
+                userNumber = data.emailToNumber[username];
             } else {
                 // 手机号登录
-                userNumber = await DongGodNetworkTechnologyServicesInformationRelayStation.getUserNumberByPhone(username);
+                userNumber = data.phoneToNumber[username];
             }
             
             if (!userNumber) {
@@ -35,12 +57,10 @@ const DongGodNetworkTechnologyServiceAPI = (function() {
             }
             
             // 验证密码（明文比较）
-            const isValid = await DongGodNetworkTechnologyServicesInformationRelayStation.verifyPassword(userNumber, password);
-            
-            if (isValid) {
+            if (data.numberToPassword[userNumber] === password) {
                 // 获取用户信息
-                const nickname = await DongGodNetworkTechnologyServicesInformationRelayStation.getUserNickname(userNumber);
-                const currency = await DongGodNetworkTechnologyServicesInformationRelayStation.getUserCurrency(userNumber);
+                const nickname = data.numberToNickname[userNumber] || '未知用户';
+                const currency = data.numberToCurrency[userNumber] || '0';
                 
                 return {
                     number: userNumber,
